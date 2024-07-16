@@ -27,3 +27,4 @@ client:
 liste des fonctions:
 - fonction pour hacher un fichier
 - fonction pour comparer deux hash
+- fonction pour verifier si un fichier existe

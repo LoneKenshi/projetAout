@@ -4,6 +4,7 @@
 #include <arpa/inet.h> // for init_addr
 #include <stdlib.h>
 #define BUFFER_SIZE 1024
+#define MAX_FILE_LENGTH 256 // 4095 characteres + null charactere
 
 void handle_error()
 {
@@ -24,7 +25,8 @@ int main(void)
     server_addr.sin_port = htons(server_port);
     server_addr.sin_addr.s_addr = inet_addr(server_ip);
 
-    char *buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE];
+    char fileName[MAX_FILE_LENGTH];
     int n, len, client_socket;
 
     int bind_result = bind(sockid, (struct sockaddr *) &server_addr, sizeof(server_addr));
@@ -53,15 +55,24 @@ int main(void)
             handle_error();
         }
 
-        printf("Accept connection from %d %s:%d\n",
-                        client_socket,
+        printf("Accept connection from %s:%d\n",
                         inet_ntoa(client_addr.sin_addr),
                         client_addr.sin_port);
         
-        n = recv(client_socket, (char *)buffer, BUFFER_SIZE, MSG_WAITALL);
+        n = recv(client_socket, (char *)fileName, MAX_FILE_LENGTH -1, MSG_WAITALL);
+        fileName[n] = '\0';
 
-        printf("Message of size %d received: %s\n",n, buffer);
+
+        if(access(fileName, F_OK) != -1)
+        {
+            printf("This file exists\n");
+        }
+        else
+        {
+            printf("This file does not exists\n");
+        }
+        
+        printf("\nMessage of size %d received: %s\n",n, fileName);
     }
-    
     close(sockid);
 }

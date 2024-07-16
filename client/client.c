@@ -17,7 +17,7 @@ int main(void)
     server_addr.sin_port = htons(server_port);
     server_addr.sin_addr.s_addr = inet_addr(server_ip);
 
-    char *msg = "hello";
+    char *msg = "/home/kali/clean.txt";
 
     connect(sockid, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
