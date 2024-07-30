@@ -125,7 +125,6 @@ int main(void)
 
         char *fileName = buffer;
         FILE *file = fopen(fileName, "rb");
-
         if(file == NULL){
             perror("Unable to open file");
             return EXIT_FAILURE;
@@ -139,7 +138,6 @@ int main(void)
 
         printf("Size of file: %ld bytes", fileSize);
 
-        // char fileBuffer[fileSize]; // allocation dynamique ou statique ?? Que faire dans le cas de fichiers volumineux ?
         char *fileBuffer = (char *) malloc(fileSize);
         if(fileBuffer == NULL){ // Le cas ou fichier est trop grand
             fclose(file);
@@ -168,9 +166,10 @@ int main(void)
         printHex(fileHash, fileHashSize);
         printf("\n");
 
-        
+        send(client_socket, file, fileSize, 0);
 
         // File send block
+
         fclose(file);
         free(buffer);
 

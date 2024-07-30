@@ -3,15 +3,17 @@
 #include <unistd.h> 
 #include <arpa/inet.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define BUFFER_SIZE 1024
 
 unsigned char* binaryToHex(unsigned char *buffer, size_t size){
-    unsigned char *hexString;
+    unsigned char *hexString = (unsigned char*)malloc(size*2+1);
     for(size_t i=0; i<size; ++i){
         sprintf(&hexString[i * 2], "%02x", buffer[i]);
     }
     // printf("The hex is: %s", hexString);
+    hexString[size*2] = '\0';
     return hexString;
 }
 
@@ -41,15 +43,16 @@ int main(int argc, char *argv[])
     printf("The message was received from the server: %s", fileHashHex);
     
     free(buffer);
-    char *buffer = (char*) calloc(BUFFER_SIZE, sizeof(char));
+    buffer = (char*) calloc(BUFFER_SIZE, sizeof(char));
     recv(sockid, buffer, BUFFER_SIZE, 0); // le fichier
 
-    // // File receive bloc
+    FILE *file = fopen("file2.txt", "wb");
 
-    // char fileMsg[] = "HASHOK;SENDFILE";
-    // send(sockid, (char *)fileMsg, strlen(fileMsg), 0);
-    // recv(sockid, (char *)buffer2, sizeof(int), MSG_WAITFORONE);
-    // printf("\nLa taille: %d", buffer2);
+    int bytesRead;
+    while((bytesRead = read(sockid, buffer, BUFFER_SIZE)) > 0){
+        fwrite(buffer, sizeof(char), bytesRead, file);
+    };
 
+    fclose(file);
     close(sockid);
 }
