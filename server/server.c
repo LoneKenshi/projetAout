@@ -87,14 +87,14 @@ int main(int argc, char *argv[])
 
     if(bind_result < 0)
     {
-        printf("Error during binding\n");
+        perror("Error during binding\n");
         handle_error(sockid, -1, buffer);
     }
 
     printf("Listening on %s:%d\n", server_ip, server_port);
     if (listen(sockid, 1) != 0)
     {
-        printf("Error during listen()\n");
+        perror("Error during listen()\n");
         handle_error(sockid, -1, buffer);
     }
 
