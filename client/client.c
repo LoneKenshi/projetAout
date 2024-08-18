@@ -7,6 +7,7 @@
 
 #define BUFFER_SIZE 1024
 #define HASH_SIZE 16
+#define FILE_NOT_FOUND_MSG "Error: File not found"
 
 unsigned char* binaryToHex(unsigned char *buffer, size_t size) {
     unsigned char *hexString = (unsigned char*)malloc(size*2+1);
@@ -49,12 +50,22 @@ int main(int argc, char *argv[]) {
 
     send(sockid, msg, strlen(msg), 0);
 
-    unsigned char hash[HASH_SIZE];
-    if (recv(sockid, hash, HASH_SIZE, 0) != HASH_SIZE) {
-        perror("Hash receive error");
+    int bytesRead = recv(sockid, buffer, BUFFER_SIZE, 0);
+    if (bytesRead <= 0) {
+        perror("Error receiving response");
         exit(EXIT_FAILURE);
     }
-    unsigned char *fileHashHex = binaryToHex(hash, HASH_SIZE);
+
+    // Check if the received message is the file-not-found error
+    if (strncmp(buffer, FILE_NOT_FOUND_MSG, strlen(FILE_NOT_FOUND_MSG)) == 0) {
+        printf("Server error: %s\n", buffer);
+        close(sockid);
+        free(buffer);
+        exit(EXIT_FAILURE);
+    }
+
+    // Otherwise, assume it's the hash
+    unsigned char *fileHashHex = binaryToHex((unsigned char*)buffer, HASH_SIZE);
     printf("The hash received from the server: %s\n", fileHashHex);
     free(fileHashHex);
 
@@ -66,7 +77,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    int bytesRead;
+    // Continue to receive the file content
     while((bytesRead = read(sockid, buffer, BUFFER_SIZE)) > 0) 
     {
         fwrite(buffer, sizeof(char), bytesRead, file);

@@ -7,8 +7,7 @@
 #include <openssl/evp.h>
 
 #define BUFFER_SIZE 1024
-
-// pour compiler: gcc -o server server.c -lcrypto -lssl
+#define FILE_NOT_FOUND_MSG "Error: File not found"
 
 void handle_error(int sockid, int client_socket, char* buffer)
 {
@@ -127,6 +126,7 @@ int main(int argc, char *argv[])
         if(access(buffer, F_OK) != 0)
         {
             printf("This file does not exist\n");
+            send(client_socket, FILE_NOT_FOUND_MSG, strlen(FILE_NOT_FOUND_MSG), 0);
             close(client_socket);
             continue;
         }
