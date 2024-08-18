@@ -8,7 +8,6 @@
 
 #define BUFFER_SIZE 1024
 #define HASH_SIZE 16
-#define FILE_NOT_FOUND_MSG "Error: File not found"
 
 unsigned char* binaryToHex(unsigned char *buffer, size_t size) {
     unsigned char *hexString = (unsigned char*)malloc(size * 2 + 1);
