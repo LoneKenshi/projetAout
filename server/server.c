@@ -10,8 +10,21 @@
 
 // pour compiler: gcc -o server server.c -lcrypto -lssl
 
-void handle_error()
+void handle_error(int sockid, int client_socket, char* buffer)
 {
+    if(sockid >= 0)
+    {
+        close(sockid);
+    }
+    if(client_socket >= 0)
+    {
+        close(client_socket);
+    }
+    if(buffer != NULL)
+    {
+        free(buffer);
+    }
+
     fprintf(stderr, "Error occurred.\n");
     exit(EXIT_FAILURE);
 }
@@ -30,38 +43,40 @@ unsigned int calculateFileHash(FILE *file, unsigned char *hash)
 
     if(!mdctx)
     {
-        handle_error();
+        handle_error(-1, -1, NULL);
     }
     if (1 != EVP_DigestInit_ex(mdctx, md, NULL))
     {
-        handle_error();
+        handle_error(-1, -1, NULL);
     }
 
     char buffer[BUFFER_SIZE];
     size_t bytes_read;
 
-    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0)
+    while((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0)
     {
         if (1 != EVP_DigestUpdate(mdctx, buffer, bytes_read))
         {
-            handle_error();
+            handle_error(-1, -1, buffer);
         }
     }
+    // free(buffer);
 
     unsigned int hashLen;
     if (1 != EVP_DigestFinal(mdctx, hash, &hashLen))
     {
-        handle_error();
+        handle_error(-1, -1, NULL);
     }
 
     EVP_MD_CTX_free(mdctx);
     return hashLen;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    int server_port = 8888;
-    char server_ip[] = "127.0.0.1";
+    char *server_ip = argv[1];
+    int server_port = atoi(argv[2]);
+    
 
     int sockid = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -78,7 +93,7 @@ int main(void)
     if(bind_result < 0)
     {
         printf("Error during binding\n");
-        handle_error();
+        handle_error(sockid, -1, buffer);
     }
     else
     {
@@ -88,7 +103,7 @@ int main(void)
         if(n != 0)
         {
             printf("Error during listen()\n");
-            handle_error();
+            handle_error(sockid, -1, buffer);
         }
 
         len = sizeof(client_addr);
@@ -97,7 +112,7 @@ int main(void)
         if(client_socket < 0)
         {
             printf("Error during accept()\n");
-            handle_error();
+            handle_error(sockid, client_socket, buffer);
         }
 
         printf("Accept connection from %s:%d\n",
@@ -111,7 +126,7 @@ int main(void)
         if(access(buffer, F_OK) != 0)
         {
             printf("This file does not exist\n");
-            handle_error();
+            handle_error(sockid, client_socket, buffer);
         }
 
         char *fileName = buffer;
@@ -147,7 +162,7 @@ int main(void)
         {
             if (send(client_socket, buffer, bytes_read, 0) == -1)
             {
-                handle_error();
+                handle_error(sockid, client_socket, buffer);
             }
         }
 
