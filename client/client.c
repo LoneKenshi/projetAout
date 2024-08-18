@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #define BUFFER_SIZE 1024
-#define HASH_SIZE 16 // MD5 produces a 16-byte hash
+#define HASH_SIZE 16
 
 unsigned char* binaryToHex(unsigned char *buffer, size_t size) {
     unsigned char *hexString = (unsigned char*)malloc(size*2+1);
@@ -18,16 +18,18 @@ unsigned char* binaryToHex(unsigned char *buffer, size_t size) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
+    if(argc != 4)
+    {
         fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
     char *buffer = (char*) calloc(BUFFER_SIZE, sizeof(char));
     int sockid;
-    int server_port = 8888;
-    char *server_ip = "127.0.0.1";
-    char *msg = argv[1]; // le nom de fichier
+
+    char *server_ip = argv[1]; // l'ip du serveur
+    int server_port = atoi(argv[2]);
+    char *msg = argv[3]; // le nom de fichier
 
     sockid = socket(AF_INET, SOCK_STREAM, 0);
     if (sockid < 0) {
@@ -47,7 +49,6 @@ int main(int argc, char *argv[]) {
 
     send(sockid, msg, strlen(msg), 0);
 
-    // Receive the hash from the server
     unsigned char hash[HASH_SIZE];
     if (recv(sockid, hash, HASH_SIZE, 0) != HASH_SIZE) {
         perror("Hash receive error");
@@ -57,23 +58,24 @@ int main(int argc, char *argv[]) {
     printf("The hash received from the server: %s\n", fileHashHex);
     free(fileHashHex);
 
-    // Open the file to write the received data
     FILE *file = fopen("file2.txt", "wb");
-    if (file == NULL) {
+
+    if (file == NULL)
+    {
         perror("File open error");
         exit(EXIT_FAILURE);
     }
 
     int bytesRead;
-    while ((bytesRead = read(sockid, buffer, BUFFER_SIZE)) > 0) {
+    while((bytesRead = read(sockid, buffer, BUFFER_SIZE)) > 0) 
+    {
         fwrite(buffer, sizeof(char), bytesRead, file);
     }
 
-    if (bytesRead < 0) {
+    if(bytesRead < 0)
         perror("File receive error");
-    } else {
+    else
         printf("File received successfully\n");
-    }
 
     fclose(file);
     free(buffer);
