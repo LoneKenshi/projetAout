@@ -7,7 +7,6 @@
 #include <openssl/evp.h>
 
 #define BUFFER_SIZE 1024
-#define FILE_NOT_FOUND_MSG "Error: File not found"
 
 void handle_error(int sockid, int client_socket, char* buffer)
 {
@@ -75,7 +74,7 @@ int main(int argc, char *argv[])
     char *server_ip = argv[1];
     int server_port = atoi(argv[2]);
 
-    int sockid = socket(AF_INET, SOCK_STREAM, 0);
+    int sockid = socket(AF_INET, SOCK_STREAM, 0); // connexion TCP
 
     struct sockaddr_in server_addr, client_addr;
     server_addr.sin_family = AF_INET;
@@ -99,7 +98,7 @@ int main(int argc, char *argv[])
         handle_error(sockid, -1, buffer);
     }
 
-    while(1) // Main loop to handle multiple clients
+    while(1)
     {
         int len = sizeof(client_addr);
         int client_socket = accept(sockid, (struct sockaddr* )&client_addr, &len);
@@ -115,18 +114,18 @@ int main(int argc, char *argv[])
                         ntohs(client_addr.sin_port)); // port
 
         int n = recv(client_socket, buffer, BUFFER_SIZE, 0); // client envoie un nom de fichier
-        if (n <= 0)
-        {
+        if(n <= 0){
             printf("Error receiving filename\n");
-            handle_error(sockid, client_socket, buffer);
+            handle_error(sockid, client_socket, buffer); 
         }
-        buffer[n] = '\0'; // Null-terminate the received string
+        buffer[n] = '\0';
 
         // on vérifie si le fichier existe
+        char message[] = "ce fichier n'existe pas";
         if(access(buffer, F_OK) != 0)
         {
-            printf("This file does not exist\n");
-            send(client_socket, FILE_NOT_FOUND_MSG, strlen(FILE_NOT_FOUND_MSG), 0);
+            printf("%s\n", message);
+            send(client_socket, message, strlen(message), 0);
             close(client_socket);
             continue;
         }
@@ -135,7 +134,7 @@ int main(int argc, char *argv[])
         FILE *file = fopen(fileName, "rb");
         if(file == NULL)
         {
-            perror("Unable to open file");
+            perror("Impossible d'ouvrire ce fichier\n");
             close(client_socket);
             continue;
         }
@@ -147,19 +146,19 @@ int main(int argc, char *argv[])
 
         printf("Size of file: %ld bytes\n", fileSize);
 
-        // Calculate and send the hash
+        // On calcule le hash
         unsigned char fileHash[EVP_MAX_MD_SIZE];
         unsigned int fileHashSize = calculateFileHash(file, fileHash);
 
-        // Send the hash to the client
+        // On envoie le hash au client
         send(client_socket, fileHash, fileHashSize, 0);
-        printf("This is the message that was sent: ");
+        printf("Le message qui a ete envoye: ");
         printHex(fileHash, fileHashSize);
 
-        // Reset file pointer to beginning for sending
+        // On remet le pointeur du fichier au tout debut
         fseek(file, 0, SEEK_SET);
 
-        // Send the file contents to the client in chunks
+        // On envoie le fichier par morceau
         size_t bytes_read;
         while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0)
         {
@@ -169,9 +168,8 @@ int main(int argc, char *argv[])
             }
         }
 
-        printf("File sent successfully\n");
+        printf("Le fichier a ete envoye sans probleme.\n");
 
-        // Clean up for this client
         fclose(file);
         close(client_socket);
     }

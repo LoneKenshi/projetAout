@@ -53,9 +53,11 @@ void calculateFileHash(const char *fileName, unsigned char *hash, unsigned int *
     fclose(file);
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 4) {
-        fprintf(stderr, "Usage: %s <server_ip> <server_port> <filename>\n", argv[0]);
+int main(int argc, char *argv[]) 
+{
+    if (argc != 5)
+    {
+        fprintf(stderr, "Usage: %s <server_ip> <server_port> <Server_filename> <Local_filename>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -64,11 +66,13 @@ int main(int argc, char *argv[]) {
 
     char *server_ip = argv[1];
     int server_port = atoi(argv[2]);
-    char *msg = argv[3];
+    char *file_name = argv[3];
+    char *local_file_name = argv[4];
 
     sockid = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockid < 0) {
-        perror("Socket creation error");
+    if (sockid < 0)
+    {
+        perror("Erreur pendant la creation du socker.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -77,21 +81,27 @@ int main(int argc, char *argv[]) {
     server_addr.sin_port = htons(server_port);
     server_addr.sin_addr.s_addr = inet_addr(server_ip);
 
-    if (connect(sockid, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-        perror("Connection failed");
+    if (connect(sockid, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
+        perror("Erreur du connexion.\n");
         exit(EXIT_FAILURE);
     }
 
-    send(sockid, msg, strlen(msg), 0);
+    send(sockid, file_name, strlen(file_name), 0);
 
     int bytesRead = recv(sockid, buffer, HASH_SIZE, 0);
-    if (bytesRead <= 0) {
-        perror("Error receiving response");
+    if (bytesRead <= 0)
+    {
+        perror("Erreur pendant la reception de la reponse\n");
+        close(sockid);
+        free(buffer);
         exit(EXIT_FAILURE);
     }
 
-    if (strncmp(buffer, FILE_NOT_FOUND_MSG, strlen(FILE_NOT_FOUND_MSG)) == 0) {
-        printf("Server error: %s\n", buffer);
+    char message[] = "ce fichier n'existe pas";
+    if (strncmp(buffer, message, strlen(message)) == 0)
+    {
+        printf("Erreur du serveur: %s\n", buffer);
         close(sockid);
         free(buffer);
         exit(EXIT_FAILURE);
@@ -100,19 +110,24 @@ int main(int argc, char *argv[]) {
     unsigned char receivedHash[HASH_SIZE];
     memcpy(receivedHash, buffer, HASH_SIZE);
 
-    FILE *file = fopen("file2.txt", "wb");
-    if (file == NULL) {
-        perror("File open error");
+    FILE *file = fopen(local_file_name, "wb");
+    if(file == NULL)
+    {
+        perror("Erreur avec l'ouverture du fichier");
         exit(EXIT_FAILURE);
     }
 
-    while ((bytesRead = read(sockid, buffer, BUFFER_SIZE)) > 0) {
+    while((bytesRead = read(sockid, buffer, BUFFER_SIZE)) > 0)
+    {
         fwrite(buffer, sizeof(char), bytesRead, file);
     }
 
-    if (bytesRead < 0) {
+    if (bytesRead < 0)
+    {
         perror("File receive error");
-    } else {
+    } 
+    else 
+    {
         printf("File received successfully\n");
     }
 
@@ -121,16 +136,19 @@ int main(int argc, char *argv[]) {
     unsigned char calculatedHash[HASH_SIZE];
     unsigned int hashLen;
 
-    calculateFileHash("file2.txt", calculatedHash, &hashLen);
+    calculateFileHash(local_file_name, calculatedHash, &hashLen);
 
     if (hashLen != HASH_SIZE) {
         fprintf(stderr, "Hash length mismatch\n");
         exit(EXIT_FAILURE);
     }
 
-    if (memcmp(receivedHash, calculatedHash, HASH_SIZE) == 0) {
+    if(memcmp(receivedHash, calculatedHash, HASH_SIZE) == 0)
+    {
         printf("The file hash matches the received hash.\n");
-    } else {
+    }
+    else
+    {
         printf("The file hash does not match the received hash.\n");
     }
 
