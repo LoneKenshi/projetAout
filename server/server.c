@@ -95,83 +95,82 @@ int main(int argc, char *argv[])
         printf("Error during binding\n");
         handle_error(sockid, -1, buffer);
     }
-    else
+
+
+    printf("Listening on %s:%d\n", server_ip, server_port);
+    n = listen(sockid, 1);
+
+    if(n != 0)
     {
-        printf("Listening on %s:%d\n", server_ip, server_port);
-        n = listen(sockid, 1);
-
-        if(n != 0)
-        {
-            printf("Error during listen()\n");
-            handle_error(sockid, -1, buffer);
-        }
-
-        len = sizeof(client_addr);
-        client_socket = accept(sockid, (struct sockaddr* )&client_addr, &len);
-
-        if(client_socket < 0)
-        {
-            printf("Error during accept()\n");
-            handle_error(sockid, client_socket, buffer);
-        }
-
-        printf("Accept connection from %s:%d\n",
-                        inet_ntoa(client_addr.sin_addr), // adresse IP client
-                        client_addr.sin_port); // port
-
-        // recv() ou read() ?
-        n = recv(client_socket, buffer, BUFFER_SIZE, 0); // client envoie un nom de fichier
-
-        // on vérifie si le fichier existe
-        if(access(buffer, F_OK) != 0)
-        {
-            printf("This file does not exist\n");
-            handle_error(sockid, client_socket, buffer);
-        }
-
-        char *fileName = buffer;
-        FILE *file = fopen(fileName, "rb");
-        if(file == NULL)
-        {
-            perror("Unable to open file");
-            return EXIT_FAILURE;
-        }
-
-        // Pour trouver la taille du fichier (en Bytes)
-        fseek(file, 0, SEEK_END);
-        long fileSize = ftell(file);
-        fseek(file, 0, SEEK_SET);
-
-        printf("Size of file: %ld bytes\n", fileSize);
-
-        // Calculate and send the hash
-        unsigned char fileHash[EVP_MAX_MD_SIZE];
-        unsigned int fileHashSize = calculateFileHash(file, fileHash);
-
-        // Send the hash to the client
-        send(client_socket, fileHash, fileHashSize, 0);
-        printf("This is the message that was sent: ");
-        printHex(fileHash, fileHashSize);
-
-        // Reset file pointer to beginning for sending
-        fseek(file, 0, SEEK_SET);
-
-        // Send the file contents to the client in chunks
-        size_t bytes_read;
-        while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0)
-        {
-            if (send(client_socket, buffer, bytes_read, 0) == -1)
-            {
-                handle_error(sockid, client_socket, buffer);
-            }
-        }
-
-        printf("File sent successfully\n");
-
-        // Clean up
-        fclose(file);
-        free(buffer);
+        printf("Error during listen()\n");
+        handle_error(sockid, -1, buffer);
     }
+
+    len = sizeof(client_addr);
+    client_socket = accept(sockid, (struct sockaddr* )&client_addr, &len);
+
+    if(client_socket < 0)
+    {
+        printf("Error during accept()\n");
+        handle_error(sockid, client_socket, buffer);
+    }
+
+    printf("Accept connection from %s:%d\n",
+                    inet_ntoa(client_addr.sin_addr), // adresse IP client
+                    client_addr.sin_port); // port
+
+    // recv() ou read() ?
+    n = recv(client_socket, buffer, BUFFER_SIZE, 0); // client envoie un nom de fichier
+
+    // on vérifie si le fichier existe
+    if(access(buffer, F_OK) != 0)
+    {
+        printf("This file does not exist\n");
+        handle_error(sockid, client_socket, buffer);
+    }
+
+    char *fileName = buffer;
+    FILE *file = fopen(fileName, "rb");
+    if(file == NULL)
+    {
+        perror("Unable to open file");
+        return EXIT_FAILURE;
+    }
+
+    // Pour trouver la taille du fichier (en Bytes)
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    printf("Size of file: %ld bytes\n", fileSize);
+
+    // Calculate and send the hash
+    unsigned char fileHash[EVP_MAX_MD_SIZE];
+    unsigned int fileHashSize = calculateFileHash(file, fileHash);
+
+    // Send the hash to the client
+    send(client_socket, fileHash, fileHashSize, 0);
+    printf("This is the message that was sent: ");
+    printHex(fileHash, fileHashSize);
+
+    // Reset file pointer to beginning for sending
+    fseek(file, 0, SEEK_SET);
+
+    // Send the file contents to the client in chunks
+    size_t bytes_read;
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0)
+    {
+        if (send(client_socket, buffer, bytes_read, 0) == -1)
+        {
+            handle_error(sockid, client_socket, buffer);
+        }
+    }
+
+    printf("File sent successfully\n");
+
+    // Clean up
+    fclose(file);
+    free(buffer);
 
     close(client_socket);
     close(sockid);
