@@ -8,3 +8,5 @@ test/client
 test/client.c
 test/server
 test/server.c
+client/client
+server/server
